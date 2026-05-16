@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import Findings from '../../../src/pages/Findings'
 import { getFindings } from '../../../src/api'
+import * as dateUtils from '../../../src/utils/date'
 
 vi.mock('../../../src/api', () => ({
   getFindings: vi.fn(),
@@ -357,6 +358,68 @@ describe('Findings — reset filters', () => {
     await waitFor(() => {
       expect(screen.getAllByText('SQL Injection in Login').length).toBeGreaterThanOrEqual(1)
       expect(screen.getAllByText('Stored XSS in Comments').length).toBeGreaterThanOrEqual(1)
+    })
+  })
+})
+
+// ── Timezone boundary regression ──────────────────────────────────────────────
+// A finding at 2026-05-13T20:00:00Z is May 14 01:30 in Asia/Kolkata (IST).
+// The date filter should compare by the *displayed* calendar day, not UTC.
+
+describe('Findings — date range respects display timezone', () => {
+  const tzBoundaryFinding = {
+    id: 'finding-tz-edge',
+    severity: 'high',
+    category: 'xss',
+    title: 'TZ Boundary XSS',
+    target: 'tz.example.com',
+    description: 'Edge case across UTC day boundary.',
+    remediation: 'Fix it.',
+    discovered_at: '2026-05-13T20:00:00Z',  // May 13 UTC, but May 14 in IST
+    plugin_id: 'zap',
+  }
+
+  beforeEach(() => {
+    vi.mocked(getFindings).mockResolvedValue({ findings: [tzBoundaryFinding] })
+    // Force timezone to Asia/Kolkata so the finding displays as May 14
+    vi.spyOn(dateUtils, 'getCurrentTimeZone').mockReturnValue('Asia/Kolkata')
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('includes a UTC May-13 finding when from-date is May-14 in IST', async () => {
+    renderFindings()
+
+    await waitFor(() => {
+      expect(screen.getAllByText('TZ Boundary XSS').length).toBeGreaterThanOrEqual(1)
+    })
+
+    const fromLabel = screen.getByText('From Date')
+    const fromInput = fromLabel.parentElement!.querySelector('input')!
+    fireEvent.change(fromInput, { target: { value: '2026-05-14' } })
+
+    // In IST this finding is May 14, so from-date of May 14 should keep it
+    await waitFor(() => {
+      expect(screen.getAllByText('TZ Boundary XSS').length).toBeGreaterThanOrEqual(1)
+    })
+  })
+
+  it('excludes the finding when from-date is May-15 in IST', async () => {
+    renderFindings()
+
+    await waitFor(() => {
+      expect(screen.getAllByText('TZ Boundary XSS').length).toBeGreaterThanOrEqual(1)
+    })
+
+    const fromLabel = screen.getByText('From Date')
+    const fromInput = fromLabel.parentElement!.querySelector('input')!
+    fireEvent.change(fromInput, { target: { value: '2026-05-15' } })
+
+    // May 14 IST < May 15 from-date, so it should be excluded
+    await waitFor(() => {
+      expect(screen.getByText(/No Findings Match/i)).toBeInTheDocument()
     })
   })
 })

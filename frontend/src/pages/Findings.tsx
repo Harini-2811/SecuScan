@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { getFindings } from '../api'
-import { formatLocaleDate, parseDateSafe } from '../utils/date'
+import { formatLocaleDate, parseDateSafe, getCurrentTimeZone } from '../utils/date'
 
 type Finding = {
   id: string
@@ -146,14 +146,6 @@ export default function Findings() {
     return Array.from(seen).sort()
   }, [enrichedFindings])
 
-  const uniqueCategories = useMemo(() => {
-    const seen = new Set<string>()
-    for (const f of enrichedFindings) {
-      if (f.category) seen.add(f.category)
-    }
-    return Array.from(seen).sort()
-  }, [enrichedFindings])
-
   // plugin_id values serve as the "scanner/tool" filter per issue #43
   const uniqueScanners = useMemo(() => {
     const seen = new Set<string>()
@@ -166,23 +158,25 @@ export default function Findings() {
   const filteredFindings = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
 
-    // Use the same date parsing the UI uses so timezone handling stays consistent
-    const fromDate = dateFrom ? parseDateSafe(dateFrom + 'T00:00:00') : null
-    const toDate = dateTo ? parseDateSafe(dateTo + 'T23:59:59') : null
-    const fromMs = fromDate?.getTime() ?? null
-    const toMs = toDate?.getTime() ?? null
+    // Compare dates using the *displayed* calendar day in the user's configured
+    // timezone, not raw UTC timestamps. This way a finding at 2026-05-13T20:00:00Z
+    // that shows as May 14 in IST correctly matches a From Date of 2026-05-14.
+    const tz = getCurrentTimeZone()
+    const dateFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: tz })
 
     return enrichedFindings.filter((finding) => {
       const matchesSeverity = filterSeverity === 'all' || finding.severity === filterSeverity
       const matchesTarget = filterTarget === 'all' || finding.target === filterTarget
       const matchesScanner = filterScanner === 'all' || finding.plugin_id === filterScanner
 
-      // Date range check — uses parseDateSafe so we respect the app's timezone config
-      if (fromMs || toMs) {
-        const ts = parseDateSafe(finding.discovered_at)?.getTime()
-        if (!ts) return false
-        if (fromMs && ts < fromMs) return false
-        if (toMs && ts > toMs) return false
+      // Date range check — derive the calendar day in the display timezone
+      if (dateFrom || dateTo) {
+        const parsed = parseDateSafe(finding.discovered_at)
+        if (!parsed) return false
+        // en-CA locale gives us YYYY-MM-DD which matches the <input type="date"> value
+        const displayDay = dateFormatter.format(parsed)
+        if (dateFrom && displayDay < dateFrom) return false
+        if (dateTo && displayDay > dateTo) return false
       }
 
       const haystack = [
