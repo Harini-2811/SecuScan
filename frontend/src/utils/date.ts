@@ -40,25 +40,25 @@ export function parseDateSafe(rawValue: string | null | undefined): Date | null 
  */
 function getPreferredTimeZone(): string | undefined {
     try {
-        const saved = localStorage.getItem('secuscan-config');
-        if (saved) {
-            const config = JSON.parse(saved);
-            if (config.timezone && config.timezone !== 'auto') {
-                return config.timezone;
-            }
-        }
+      const saved = localStorage.getItem('secuscan-config');
+      if (saved) {
+          const config = JSON.parse(saved)
+          if (config.timezone && config.timezone !== 'auto') {
+              return config.timezone
+          }
+      }
     } catch (e) {
       // Fallback to system default
     }
-    return undefined;
-}
+    return undefined
+  }
 
 /**
  * Returns the current timezone being used (either preferred or system default).
  */
 export function getCurrentTimeZone(): string {
-  const preferred = getPreferredTimeZone();
-  if (preferred) return preferred;
+  const preferred = getPreferredTimeZone()
+  if (preferred) return preferred
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone
   } catch (e) {
@@ -75,12 +75,12 @@ export function getTimeZoneAbbreviation(): string {
     const formatter = new Intl.DateTimeFormat([], {
         timeZoneName: 'short',
         ...(tz ? { timeZone: tz } : {})
-    });
-    const parts = formatter.formatToParts(new Date());
-    const tzPart = parts.find(part => part.type === 'timeZoneName');
-    return tzPart ? tzPart.value : '';
+    })
+    const parts = formatter.formatToParts(new Date())
+    const tzPart = parts.find(part => part.type === 'timeZoneName')
+    return tzPart ? tzPart.value : ''
   } catch (e) {
-    return '';
+    return ''
   }
 }
 
@@ -91,8 +91,8 @@ export function formatBriefingDate(dateStr: string | null): string {
   const d = parseDateSafe(dateStr)
   if (!d) return ''
 
-  const tz = getPreferredTimeZone();
-  const options: Intl.DateTimeFormatOptions = tz ? { timeZone: tz } : {};
+  const tz = getPreferredTimeZone()
+  const options: Intl.DateTimeFormatOptions = tz ? { timeZone: tz } : {}
 
   const day = d.toLocaleDateString([], { ...options, day: '2-digit' })
   const month = d.toLocaleDateString([], { ...options, month: 'short' }).toUpperCase()
@@ -149,8 +149,8 @@ export function formatDateLong(dateStr: string | null): string {
         ...(tz ? { timeZone: tz } : {})
     }).toUpperCase()
 
-    const tzAbbr = getTimeZoneAbbreviation();
-    return tzAbbr ? `${formatted} ${tzAbbr}` : formatted;
+    const tzAbbr = getTimeZoneAbbreviation()
+    return tzAbbr ? `${formatted} ${tzAbbr}` : formatted
 }
 
 /**
@@ -158,12 +158,12 @@ export function formatDateLong(dateStr: string | null): string {
  */
 export function formatLocaleDate(dateStr: string | Date | null | undefined, options: Intl.DateTimeFormatOptions = {}): string {
     const d = typeof dateStr === 'string' || dateStr === null || dateStr === undefined ? parseDateSafe(dateStr) : dateStr;
-    if (!d) return 'N/A';
-    const tz = getPreferredTimeZone();
+    if (!d) return 'N/A'
+    const tz = getPreferredTimeZone()
     return d.toLocaleDateString([], {
         ...(tz ? { timeZone: tz } : {}),
         ...options
-    });
+    })
 }
 
 /**
@@ -172,13 +172,14 @@ export function formatLocaleDate(dateStr: string | Date | null | undefined, opti
 export function formatLocaleTime(dateStr: string | Date | null | undefined, options: Intl.DateTimeFormatOptions = {}): string {
     const d = typeof dateStr === 'string' || dateStr === null || dateStr === undefined ? parseDateSafe(dateStr) : dateStr;
     if (!d) return 'N/A';
-    const tz = getPreferredTimeZone();
+    const tz = getPreferredTimeZone()
     return d.toLocaleTimeString([], {
         ...(tz ? { timeZone: tz } : {}),
         hour12: false,
         ...options
-    });
+    })
 }
+
 export type DateRange = 'all' | '24h' | '7d' | '30d'
 
 export function isWithinDateRange(dateStr: string, range: DateRange): boolean {
