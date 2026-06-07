@@ -28,7 +28,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
         return () => window.removeEventListener('storage', handleStorageChange)
     }, [])
 
-    const toggleSidebar = () => setIsExpanded(prev => !prev)
+    const toggleSidebar = () => setIsExpanded((prev: boolean) => !prev)
 
     return (
         <SidebarContext.Provider value={{ isExpanded, toggleSidebar }}>
