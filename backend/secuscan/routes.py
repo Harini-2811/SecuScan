@@ -2136,6 +2136,11 @@ async def get_notification_rule(rule_id: str, owner: str = Depends(get_current_o
 
 @router.patch("/notifications/rules/{rule_id}")
 async def update_notification_rule(rule_id: str, payload: NotificationRuleUpdate, owner: str = Depends(get_current_owner)):
+    """Patch a notification rule.
+
+    Returns ``409 Conflict`` with the latest persisted rule when an optimistic
+    update loses a concurrent edit race so clients can refresh and retry.
+    """
     db = await get_db()
     row = await _verify_notification_rule_owner(db, rule_id, owner)
 

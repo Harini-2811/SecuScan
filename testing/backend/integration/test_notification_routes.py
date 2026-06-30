@@ -101,6 +101,9 @@ def test_notification_rule_accepts_email_target(test_client):
 async def test_notification_rule_update_returns_409_on_concurrent_conflict(
     setup_test_environment, monkeypatch
 ):
+    # API contract: concurrent PATCH requests use optimistic locking. The loser
+    # gets 409 plus the current persisted rule so the client can refresh before
+    # retrying local edits.
     await rate_limiter.reset()
     async with concurrent_limiter.lock:
         concurrent_limiter.running_tasks.clear()
