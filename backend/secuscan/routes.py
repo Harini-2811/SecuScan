@@ -23,6 +23,9 @@ from .routes_json_helpers import (
     iter_raw_output_chunks,
     parse_json_fields,
 )
+
+# Re-exported for backward compatibility with integration tests
+SSE_RAW_OUTPUT_CHUNK_SIZE = 64 * 1024
 from .routes_report_helpers import (
     _slugify_filename_part,
     build_report_filename,
