@@ -105,15 +105,6 @@ const NavSection = ({ label, isExpanded }: { label: string, isExpanded: boolean 
 export default function Sidebar() {
     const { isExpanded, toggleSidebar } = useSidebar()
     const { isAuthenticated, signOut } = useAuth()
-    const [isExpanded, setIsExpanded] = useState(() => {
-        const saved = localStorage.getItem('sidebar-expanded')
-        return saved !== null ? JSON.parse(saved) : true
-    })
-
-    useEffect(() => {
-        localStorage.setItem('sidebar-expanded', JSON.stringify(isExpanded))
-        window.dispatchEvent(new CustomEvent('sidebar-state-changed', { detail: isExpanded }))
-    }, [isExpanded])
 
     return (
         <motion.aside
