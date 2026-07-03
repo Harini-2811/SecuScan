@@ -814,6 +814,7 @@ class TaskExecutor:
                 },
                 task_id=task_id,
             )
+            await self._dispatch_task_notifications(db, task_id)
 
         except Exception as e:
             logger.error(f"Task {task_id} failed: {e}", exc_info=True)
@@ -846,6 +847,7 @@ class TaskExecutor:
                 context={"task_id": task_id, "error": str(e)},
                 task_id=task_id
             )
+            await self._dispatch_task_notifications(db, task_id)
         finally:
             self.running_tasks.pop(task_id, None)
             self._process_pids.pop(task_id, None)
@@ -1872,9 +1874,15 @@ class TaskExecutor:
             if sent:
                 logger.info("Task %s: delivered %d notification(s)", task_id, sent)
 
-            # Send Slack Webhook notification for scan completion
+            # Send Slack Webhook notification for scan completion (legacy,
+            # single global webhook configured via env var).
             from .notification_service import process_slack_notification
             await process_slack_notification(db, task_id)
+
+            # Send the per-owner scan-completion webhook (Slack/Discord/
+            # generic JSON), configured from the Settings page (issue #1615).
+            from .notification_service import process_scan_completion_webhook
+            await process_scan_completion_webhook(db, task_id)
         except Exception as exc:
             logger.warning(
                 "Task %s: notification dispatch failed: %s",
@@ -1899,3 +1907,4 @@ class TaskExecutor:
 
 # Global executor instance
 executor = TaskExecutor()
+

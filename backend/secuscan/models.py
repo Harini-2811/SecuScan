@@ -326,6 +326,19 @@ class NotificationRuleUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
+class ScanWebhookSettingsRequest(BaseModel):
+    """Request payload for setting the scan-completion webhook URL."""
+    webhook_url: str = Field(..., max_length=2000)
+
+
+class ScanWebhookSettingsResponse(BaseModel):
+    """Stored scan-completion webhook setting returned by the API."""
+    webhook_url: Optional[str] = None
+    platform: Optional[str] = None
+    configured: bool = False
+    updated_at: Optional[datetime] = None
+
+
 class NotificationRuleResponse(BaseModel):
     """Stored notification rule returned by the API."""
     id: str
@@ -359,3 +372,4 @@ class NotificationDiagnosticsResponse(BaseModel):
 class BulkDeleteRequest(RootModel[Annotated[List[str], Field(max_length=MAX_BULK_DELETE)]]):
     """Accepts a JSON array of task IDs directly. Max 500 per request."""
     pass
+
