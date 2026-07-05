@@ -2466,6 +2466,9 @@ async def get_finding_details(finding_id: str, owner: str = Depends(get_current_
         "asset_exposure": finding_row.get("asset_exposure"),
         "risk_score": finding_row.get("risk_score"),
         "risk_factors": risk_factors,
+        "safe_to_apply": metadata.get("safe_to_apply"),
+        "compatible_range": metadata.get("compatible_range"),
+        "alternatives": metadata.get("alternatives"),
     }
 
 
