@@ -20,6 +20,7 @@ from backend.secuscan.cache import init_cache
 from backend.secuscan.config import settings
 from backend.secuscan.plugins import init_plugins, get_plugin_manager
 from backend.secuscan.reporting import reporting
+from backend.secuscan.routes_report_helpers import build_report_filename
 
 async def run_scan(target: str, plugin_id: str, output_format: str, output_file: Optional[str] = None):
     """Initialize components and execute a scan task."""
@@ -106,6 +107,19 @@ async def run_scan(target: str, plugin_id: str, output_format: str, output_file:
     structured_data = json.loads(task_row["structured_json"]) if task_row["structured_json"] else {}
     result_payload = {"structured": structured_data}
 
+    # Handle PDF separately since it produces bytes, not text
+    if output_format == "pdf":
+        dest = output_file or build_report_filename(dict(task_row), "pdf")
+        output_path = Path(dest)
+        try:
+            pdf_bytes = reporting.generate_pdf_report(dict(task_row), result_payload)
+        except RuntimeError as exc:
+            print(f"\n[!] PDF generation failed: {exc}")
+            return 1
+        output_path.write_bytes(pdf_bytes)
+        print(f"[*] PDF report saved to: {output_path.absolute()}")
+        return 0
+
     report_content: str = ""
     if output_format == "sarif":
         report_content = reporting.generate_sarif_report(dict(task_row), result_payload)
@@ -141,7 +155,7 @@ def main():
     scan_parser = subparsers.add_parser("scan", help="Run a security scan")
     scan_parser.add_argument("target", help="Target to scan (IP, Domain, or Path)")
     scan_parser.add_argument("--plugin", default="nmap", help="Plugin ID to use (default: nmap)")
-    scan_parser.add_argument("--format", choices=["sarif", "json", "csv", "html", "console"], default="console", help="Output format")
+    scan_parser.add_argument("--format", choices=["sarif", "json", "csv", "html", "pdf", "console"], default="console", help="Output format")
     scan_parser.add_argument("--output", "-o", help="Output file path")
 
     # List plugins command
